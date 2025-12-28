@@ -1,0 +1,109 @@
+= Moteur de Recherche Documentaire RAG (Zephyr-7B & FAISS)
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+:sectnums:
+:sectlinks:
+:doctype: book
+
+== 📝 Description du Projet
+
+Ce projet implémente un système de **Question-Réponse sur Documents** (Document QA) basé sur une architecture **RAG (Retrieval-Augmented Generation)**.
+
+L'objectif est de permettre à un utilisateur d'interroger des documents PDF techniques ou financiers (ex: Rapports annuels, Documentation technique) en langage naturel, sans avoir à lire les centaines de pages.
+
+Contrairement à un simple mot-clé (CTRL+F), ce moteur utilise la **recherche sémantique** pour comprendre le sens de la question et synthétiser une réponse précise à l'aide d'un LLM Open Source.
+
+== 🛠️ Architecture Technique
+
+Le pipeline est conçu pour fonctionner en local ou sur le cloud (Google Colab) avec une optimisation forte de la mémoire (Quantization).
+
+[cols="1,3"]
+|===
+| Composant | Technologie & Rôle
+
+| **LLM (Générateur)**
+| `Zephyr-7B-beta` (Hugging Face). Un modèle affiné (fine-tuned) performant, exécuté en **4-bit quantization** (via `bitsandbytes`) pour tenir sur un GPU standard (T4).
+
+| **Vector Store (Index)**
+| `FAISS` (Facebook AI Similarity Search). Base de données vectorielle ultra-rapide pour stocker les "embeddings" du document.
+
+| **Embeddings**
+| `Sentence-Transformers`. Convertit les paragraphes du PDF en vecteurs mathématiques pour la comparaison sémantique.
+
+| **Orchestrateur**
+| `LangChain`. Framework gérant le découpage du texte (Chunking), la récupération du contexte et l'injection dans le prompt du LLM.
+|===
+
+== ⚙️ Fonctionnement du Pipeline RAG
+
+.   **Ingestion** : Le document PDF est chargé et découpé en petits morceaux (*chunks*) de 1000 caractères avec un recouvrement (*overlap*) pour ne pas perdre le contexte.
+.   **Vectorisation** : Chaque morceau est transformé en vecteur et stocké dans l'index FAISS.
+.   **Interrogation** : L'utilisateur pose une question (ex: "Quels sont les risques financiers ?").
+.   **Retrieval (Récupération)** : Le système cherche dans FAISS les 3 ou 4 morceaux les plus pertinents sémantiquement.
+.   **Génération** : Ces morceaux sont envoyés au LLM (Zephyr) avec la question. Le LLM génère une réponse basée *uniquement* sur ces sources.
+
+== 🚀 Guide d'Exécution (Google Colab)
+
+Ce projet est conçu pour Google Colab afin de bénéficier de l'accélération GPU gratuite.
+
+=== 1. Configuration de l'environnement
+
+1.  **Importez le Notebook** `.ipynb` dans Google Colab.
+2.  **Activez le GPU** :
+    * Allez dans **Exécution** > **Modifier le type d'exécution**.
+    * Choisissez **GPU T4**.
+    * Cliquez sur **Enregistrer**.
+
+=== 2. Installation (Étape Critique)
+
+Exécutez la première cellule d'installation des librairies (`!pip install ...`).
+
+[IMPORTANT]
+====
+Une fois l'installation terminée, vous **DEVEZ redémarrer la session** pour que les mises à jour (notamment NumPy/Accelerate) soient prises en compte.
+Allez dans **Exécution > Redémarrer la session**, puis passez directement à la cellule des imports.
+====
+
+=== 3. Chargement de vos Données
+
+Le notebook est configuré par défaut avec un exemple (Rapport Société Générale), mais il est **générique**.
+
+1.  Importez **VOTRE** fichier PDF dans l'espace de fichiers de Colab (icône dossier à gauche).
+2.  Modifiez le chemin dans la cellule de chargement :
++
+[source,python]
+----
+# Remplacez par le nom de votre fichier
+pdf_path = "Mon_Document_Technique.pdf"
+loader = PyPDFLoader(pdf_path)
+----
+
+=== 4. Interrogation du Moteur
+
+Une fois le pipeline construit (Index FAISS créé), vous pouvez poser vos questions.
+
+[WARNING]
+====
+**Attention au contexte !**
+Les questions pré-écrites dans le notebook (ex: "Montant des fonds propres ?") sont spécifiques au fichier d'exemple (Société Générale).
+**Si vous changez de PDF, vous DEVEZ changer la question**, sinon le modèle ne trouvera pas la réponse.
+====
+
+Utilisez ce bloc de code pour poser une nouvelle question :
+
+[source,python]
+----
+# Exemple de question adaptée à votre document
+ma_question = "Quelles sont les conclusions du chapitre 3 ?"
+
+print(f"\n❓ Question : {ma_question}")
+reponse = qa_chain.invoke(ma_question)
+
+# Affichage propre du résultat
+print(f"💡 Réponse IA : {reponse['result'].strip()}")
+----
+
+---
+*Projet réalisé dans le cadre d'un portfolio d'Ingénierie IA & Data.*

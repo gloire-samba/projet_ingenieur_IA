@@ -1,0 +1,107 @@
+= Agent IA Autonome : Web Surfer & Veille Informationnelle
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+:sectnums:
+:sectlinks:
+:doctype: book
+
+== 📝 Description du Projet
+
+Ce projet implémente un **Agent IA Autonome** capable de réaliser une veille technologique et de répondre à des questions complexes en naviguant sur le web.
+
+Contrairement à un LLM classique (comme ChatGPT) qui est limité à ses données d'entraînement, cet agent utilise un **workflow agentique** pour :
+1.  **Comprendre** une requête utilisateur.
+2.  **Rechercher** des informations en temps réel sur Internet (via DuckDuckGo).
+3.  **Analyser** le contenu des pages web.
+4.  **Synthétiser** une réponse précise et sourcée.
+
+L'objectif est de démontrer la mise en place d'une architecture **RAG dynamique** (Retrieval-Augmented Generation) orchestrée par un modèle léger et performant.
+
+== 🛠️ Stack Technique
+
+Ce projet repose sur une stack moderne orientée "Local AI" et efficacité :
+
+* **Cerveau (LLM)** : `Qwen 2.5 (3B Parameters)` - Un modèle optimisé pour tourner sur des ressources limitées tout en gardant une forte capacité de raisonnement.
+* **Orchestration** : `SmolAgents` (Hugging Face) - Framework léger pour la gestion des outils (Tool Calling).
+* **Outils (Tools)** :
+    ** `DuckDuckGoSearchTool` : Pour la recherche web sans API key payante.
+    ** `VisitWebpageTool` : Pour le scraping et la lecture du contenu des pages.
+* **Optimisation** : `BitsAndBytes` (Quantization 4-bit/8-bit) pour réduire l'empreinte mémoire GPU.
+* **Environnement** : Google Colab (GPU T4).
+
+== 🚀 Fonctionnalités Clés
+
+[cols="1,3"]
+|===
+| Feature | Description
+
+| **Navigation Web Autonome**
+| L'agent décide lui-même quand il a besoin de chercher sur Google/DuckDuckGo. Il n'a pas besoin d'être guidé pas à pas.
+
+| **Orchestration d'Outils**
+| Utilisation du paradigme *Tool Calling* : Le LLM sélectionne le bon outil (Recherche ou Lecture) en fonction du contexte.
+
+| **Comparatif d'Agents**
+| Implémentation et comparaison de deux architectures :
+* **CodeAgent** : Génère du code Python pour résoudre la tâche.
+* **ToolCallingAgent** : Appelle directement les fonctions prédéfinies (format JSON).
+
+| **Modèle Quantifié**
+| Utilisation de techniques de quantification pour faire tourner un LLM performant sur une instance gratuite.
+|===
+
+== 💻 Guide d'Exécution (Google Colab)
+
+Pour tester cet agent, suivez les étapes ci-dessous. Le projet est conçu pour être exécuté sur le cloud via Google Colab.
+
+=== 1. Préparation de l'environnement
+
+1.  Importez le fichier `.ipynb` dans Google Colab.
+2.  Activez l'accélération matérielle (Indispensable pour le LLM) :
+    * Allez dans le menu **Exécution** > **Modifier le type d'exécution**.
+    * Dans "Type d'accélérateur matériel", choisissez **GPU T4**.
+    * Cliquez sur **Enregistrer**.
+
+=== 2. Installation et Initialisation
+
+Exécutez les cellules dans l'ordre séquentiel :
+
+1.  **Installation des dépendances** : Installe `transformers`, `accelerate`, `bitsandbytes`, etc.
+2.  **Imports** : Charge les bibliothèques nécessaires.
+3.  **Configuration du Modèle** : Télécharge et charge le modèle `Qwen 2.5-3B` en mémoire GPU.
+4.  **Définition des Outils** : Initialise les outils de recherche et de navigation.
+
+=== 3. Choix et Lancement de l'Agent
+
+Vous avez le choix entre deux types d'agents selon la méthode de résolution souhaitée :
+
+[TIP]
+====
+Pour une meilleure robustesse sur des tâches complexes, privilégiez le **ToolCallingAgent**.
+====
+
+* **Option A : CodeAgent**
+    * Allez à la cellule **TEST DE L'AGENT (CodeAgent)**.
+    * Modifiez la variable `query` avec votre question.
+    * Exécutez la cellule.
+
+* **Option B : ToolCallingAgent**
+    * Allez à la cellule **TEST DE L'AGENT (ToolCallingAgent)**.
+    * Modifiez la variable `query` avec votre question.
+    * Exécutez la cellule.
+
+== 📊 Exemple de Résultat
+
+**Requête Utilisateur :**
+> "Quelle est la date de sortie de GTA VI et quelles sont les dernières rumeurs ?"
+
+**Réponse de l'Agent :**
+1.  *L'agent identifie qu'il ne connaît pas la réponse.*
+2.  *Il lance une recherche DuckDuckGo : "GTA VI release date rumors".*
+3.  *Il lit les résultats.*
+4.  *Il répond : "GTA VI est prévu pour l'automne 2025 sur PS5 et Xbox Series X/S, selon les annonces de Rockstar Games..."*
+
+---
+*Projet réalisé dans le cadre d'un portfolio d'Ingénierie IA.*

@@ -1,0 +1,102 @@
+= Système de Contrôle d'Accès Biométrique & Recherche Vectorielle
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+:sectnums:
+:sectlinks:
+:doctype: book
+
+== 📝 Description du Projet
+
+Ce projet implémente un système de **reconnaissance faciale sécurisé** simulant le contrôle d'accès d'une entreprise.
+
+Contrairement aux approches classiques de classification (qui nécessitent de réentraîner un modèle pour chaque nouvel employé), ce système utilise une architecture de **Recherche de Similarité Vectorielle** (Vector Similarity Search).
+
+Le pipeline transforme les visages en vecteurs mathématiques (embeddings) et utilise une base de données vectorielle pour identifier les personnes en temps réel, ou rejeter les intrus inconnus.
+
+== 🛠️ Architecture Technique
+
+Le projet repose sur une stack orientée "Production" pour la gestion des données non structurées (images) :
+
+[cols="1,3"]
+|===
+| Composant | Rôle Technique
+
+| **DeepFace (VGG-Face)**
+| Moteur d'extraction de caractéristiques. Transforme une image de visage en un vecteur de 4096 dimensions (Embedding).
+
+| **Qdrant (Vector DB)**
+| Base de données vectorielle utilisée pour indexer et rechercher les empreintes faciales. Utilisation de la **Distance Cosinus** pour mesurer la similitude.
+
+| **OpenCV**
+| Prétraitement des images (conversion BGR/RGB, redimensionnement).
+
+| **Dataset LFW**
+| *Labeled Faces in the Wild*. Jeu de données utilisé pour simuler la base des 500 employés de l'entreprise.
+|===
+
+== ⚙️ Fonctionnement du Pipeline
+
+Le système fonctionne en deux phases distinctes :
+
+=== 1. Phase d'Enrôlement (Ingestion)
+.   Lecture des images brutes des employés depuis le dataset.
+.   Détection et alignement du visage.
+.   **Vectorisation** : Conversion du visage en un point dans un espace vectoriel à N dimensions.
+.   **Indexation** : Stockage du vecteur et des métadonnées (Nom, ID) dans la collection Qdrant.
+
+=== 2. Phase de Reconnaissance (Inférence)
+.   Capture d'une nouvelle image (Caméra ou Fichier).
+.   Calcul du vecteur de la nouvelle image.
+.   **Recherche du Plus Proche Voisin (ANN)** dans Qdrant.
+.   **Vérification du Seuil (Thresholding)** :
+    * Si `Score de Similitude > 0.50` : **Accès Autorisé** (Identification confirmée).
+    * Si `Score de Similitude < 0.50` : **Accès Refusé** (Visage inconnu, même s'il ressemble vaguement à quelqu'un).
+
+== 🚀 Guide d'Exécution (Kaggle)
+
+Ce projet est optimisé pour l'environnement **Kaggle Notebooks**.
+
+=== 1. Configuration de l'environnement Kaggle
+
+1.  **Importez le Notebook** `.ipynb` dans Kaggle.
+2.  **Ajoutez le Dataset** :
+    * Cliquez sur **Add Input** (colonne de droite).
+    * Cherchez et ajoutez : `LFW - People (Face Recognition)`.
+3.  **Activez Internet** :
+    * Dans le panneau de droite "Session Options", mettez **Internet on** (Nécessaire pour télécharger le modèle VGG-Face et les dépendances).
+
+=== 2. Installation des Dépendances
+
+La première cellule du notebook gère l'installation des librairies et la compatibilité des versions (notamment le correctif pour NumPy 2.0).
+
+[source,python]
+----
+!pip install "numpy<2" qdrant-client deepface tf-keras opencv-python-headless
+----
+
+[IMPORTANT]
+====
+Après l'installation, si le notebook le demande ou si vous rencontrez une erreur d'import, redémarrez la session via le menu : **Run > Restart Session**.
+====
+
+=== 3. Utilisation de la fonction de test
+
+Une fois l'ingestion terminée (base construite), vous pouvez tester le système avec la fonction `reconnaitre_visage(chemin_image)`.
+
+Exemple d'utilisation :
+
+[source,python]
+----
+# Test avec une image externe
+reconnaitre_visage("/kaggle/working/intrus.jpg")
+----
+
+== 📊 Résultats Attendus
+
+* **Cas nominal (Employé)** : Le système renvoie le nom de la personne avec un score de confiance élevé (> 0.6).
+* **Cas d'intrusion (Inconnu)** : Le système détecte que le visage ne correspond à personne dans la base (Score faible) et lève une alerte.
+
+---
+*Projet réalisé dans le cadre d'un portfolio d'Ingénierie Logiciel & IA.*
