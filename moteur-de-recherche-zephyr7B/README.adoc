@@ -40,9 +40,8 @@ Le pipeline est conçu pour fonctionner en local ou sur le cloud (Google Colab) 
 
 .   **Ingestion** : Le document PDF est chargé et découpé en petits morceaux (*chunks*) de 1000 caractères avec un recouvrement (*overlap*) pour ne pas perdre le contexte.
 .   **Vectorisation** : Chaque morceau est transformé en vecteur et stocké dans l'index FAISS.
-.   **Interrogation** : L'utilisateur pose une question (ex: "Quels sont les risques financiers ?").
-.   **Retrieval (Récupération)** : Le système cherche dans FAISS les 3 ou 4 morceaux les plus pertinents sémantiquement.
-.   **Génération** : Ces morceaux sont envoyés au LLM (Zephyr) avec la question. Le LLM génère une réponse basée *uniquement* sur ces sources.
+.   **Prompt Engineering** : Le contexte récupéré est injecté dans un "Prompt Template" qui définit le rôle de l'IA (Expert financier, Technicien, etc.).
+.   **Génération** : Le LLM (Zephyr) génère la réponse finale en se basant *uniquement* sur les sources fournies.
 
 == 🚀 Guide d'Exécution (Google Colab)
 
@@ -62,13 +61,11 @@ Exécutez la première cellule d'installation des librairies (`!pip install ...`
 
 [IMPORTANT]
 ====
-Une fois l'installation terminée, vous **DEVEZ redémarrer la session** pour que les mises à jour (notamment NumPy/Accelerate) soient prises en compte.
+Une fois l'installation terminée, vous **DEVEZ redémarrer la session** pour que les mises à jour soient prises en compte.
 Allez dans **Exécution > Redémarrer la session**, puis passez directement à la cellule des imports.
 ====
 
 === 3. Chargement de vos Données
-
-Le notebook est configuré par défaut avec un exemple (Rapport Société Générale), mais il est **générique**.
 
 1.  Importez **VOTRE** fichier PDF dans l'espace de fichiers de Colab (icône dossier à gauche).
 2.  Modifiez le chemin dans la cellule de chargement :
@@ -80,18 +77,37 @@ pdf_path = "Mon_Document_Technique.pdf"
 loader = PyPDFLoader(pdf_path)
 ----
 
-=== 4. Interrogation du Moteur
+=== 4. Adaptation du "Persona" (Prompt Engineering)
 
-Une fois le pipeline construit (Index FAISS créé), vous pouvez poser vos questions.
+Le modèle ne devine pas tout seul le type de document. Par défaut, le code est configuré pour analyser un **Rapport Bancaire**.
 
 [WARNING]
 ====
-**Attention au contexte !**
-Les questions pré-écrites dans le notebook (ex: "Montant des fonds propres ?") sont spécifiques au fichier d'exemple (Société Générale).
-**Si vous changez de PDF, vous DEVEZ changer la question**, sinon le modèle ne trouvera pas la réponse.
+**Si vous changez de type de document (ex: Cours d'histoire, Manuel technique), vous DEVEZ modifier la variable `template_francais` dans le notebook.**
+Sinon, l'IA continuera d'agir comme un expert financier et risque de donner des réponses incohérentes.
 ====
 
-Utilisez ce bloc de code pour poser une nouvelle question :
+Cherchez la cellule contenant `template_francais` et modifiez la partie `<|system|>` :
+
+**Exemple pour une documentation technique :**
+[source,python]
+----
+template_francais = """<|system|>
+Tu es un expert en ingénierie logicielle. Tu analyses une documentation technique.
+Utilise UNIQUEMENT le contexte ci-dessous pour répondre.
+Si la réponse n'est pas dans le texte, dis "Information non trouvée".
+Réponds en français de manière synthétique.</s>
+<|user|>
+Contexte:
+{context}
+
+Question: {question}</s>
+<|assistant|>"""
+----
+
+=== 5. Interrogation du Moteur
+
+Une fois le pipeline construit, posez vos questions dans la dernière section.
 
 [source,python]
 ----
