@@ -1,0 +1,137 @@
+= Video Insight Engine : Analyse Multimodale (Audio & Vision)
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+:sectnums:
+:sectlinks:
+:doctype: book
+
+== 📝 Description du Projet
+
+Ce projet implémente un pipeline d'IA **Multimodal** capable d'analyser automatiquement le contenu d'une vidéo, qu'elle contienne du son ou non.
+
+L'objectif est de transformer des données non-structurées (flux vidéo) en informations textuelles exploitables (insights), en combinant **Reconnaissance Vocale (ASR)** et **Vision par Ordinateur (Computer Vision)**.
+
+Le système intègre une logique de **résilience (Fallback Mechanism)** :
+1.  Il priorise l'écoute de la piste audio pour une transcription précise.
+2.  En cas de silence ou d'absence de piste audio, il bascule automatiquement sur l'analyse visuelle des images clés.
+3.  Il applique une couche de **Traduction Conditionnelle** pour éviter les hallucinations sur du contenu déjà francophone.
+
+== 🛠️ Architecture Technique
+
+Le projet orchestre plusieurs modèles SOTA (State-of-the-Art) via Python :
+
+[cols="1,3"]
+|===
+| Composant | Technologie & Rôle
+
+| **Traitement Audio (ASR)**
+| `OpenAI Whisper` (Base). Modèle de reconnaissance vocale robuste, capable de transcrire la parole et d'identifier la langue source automatiquement.
+
+| **Analyse Visuelle (Captioning)**
+| `BLIP` (Salesforce). Modèle "Image-to-Text" utilisé pour générer des descriptions textuelles des scènes lorsque l'audio est indisponible.
+
+| **Traduction (NMT)**
+| `Helsinki-NLP` (Opus-MT). Modèle de traduction neuronale utilisé pour convertir les résultats anglophones (issus de BLIP ou Whisper EN) vers le Français.
+
+| **Traitement Vidéo**
+| `MoviePy`. Manipulation des flux vidéo, extraction de la piste audio et capture des "Keyframes" (images clés) à intervalles réguliers.
+|===
+
+== ⚙️ Logique Algorithmique (Le Pipeline)
+
+Ce n'est pas une simple exécution de modèles, mais un workflow conditionnel intelligent :
+
+[source,mermaid]
+----
+graph TD
+    A[Input Vidéo .mp4] --> B{Piste Audio détectée ?}
+    B -- OUI (Plan A) --> C[Whisper Transcribe]
+    C --> D{Langue détectée ?}
+    D -- Anglais ('en') --> E[Traduction EN -> FR]
+    D -- Français ('fr') --> F[Conservation Texte Original]
+    
+    B -- NON (Plan B) --> G[Extraction Images Clés]
+    G --> H[BLIP Image Captioning]
+    H --> I[Traduction EN -> FR]
+    
+    E --> J[Rapport Final]
+    F --> J
+    I --> J
+----
+
+=== Points forts de l'ingénierie :
+* **Fallback Automatique** : Le système ne plante pas si la vidéo est muette.
+* **Optimisation (Smart Translation)** : Contrairement aux pipelines naïfs, celui-ci ne traduit pas une vidéo qui est déjà en français, évitant ainsi les erreurs de traduction récursive (hallucinations).
+* **Chunking** : Gestion de la mémoire GPU lors de la traduction de longs textes (découpage intelligent).
+
+== 🚀 Guide d'Exécution (Google Colab)
+
+Ce projet nécessite un GPU (T4 recommandé) pour l'inférence des modèles Whisper et BLIP.
+
+=== 1. Installation
+
+Exécutez la cellule d'installation pour configurer l'environnement :
+
+[source,python]
+----
+!pip install -q transformers accelerate bitsandbytes moviepy openai-whisper scipy torchaudio
+!pip install -q imageio-ffmpeg
+----
+
+=== 2. Chargement de la Vidéo (Étape Critique)
+
+Avant de lancer l'analyse, vous devez importer votre fichier vidéo dans l'environnement Colab :
+
+1.  Ouvrez le volet de gauche en cliquant sur l'icône **Dossier** (📁).
+2.  **Glissez-déposez** votre fichier `.mp4` dans cet espace.
+3.  Attendez la fin du téléchargement (cercle de progression en bas du volet).
+
+[WARNING]
+====
+Le nom du fichier dans le code doit correspondre **exactement** au fichier uploadé.
+====
+
+=== 3. Utilisation du Moteur
+
+Le code est encapsulé dans une classe `VideoInsightAI`. Voici comment l'utiliser :
+
+[source,python]
+----
+# Initialisation du moteur (chargement des modèles en VRAM)
+engine = VideoInsightAI()
+
+# ⚠️ Modifiez cette ligne avec le nom de VOTRE vidéo
+fichier_video = "ma_video_conference.mp4"
+
+# Exécution de l'analyse
+if os.path.exists(fichier_video):
+    rapport = engine.analyze_video(fichier_video)
+    print(rapport)
+else:
+    print("❌ Fichier introuvable. Avez-vous bien uploadé la vidéo ?")
+----
+
+== 📊 Exemples de Résultats
+
+=== Cas 1 : Vidéo avec parole (Anglais ou Français)
+Le système détecte l'audio et la langue.
+
+> **Log** : 🔊 Piste audio détectée -> Module WHISPER.
+>
+> **Log** : 📝 Langue détectée : EN
+>
+> **Résultat** : "🎙️ **Transcription (Traduit)** : Bonjour à tous, aujourd'hui nous allons parler de..."
+
+=== Cas 2 : Vidéo de surveillance (Muette)
+Le système détecte le silence et analyse les images.
+
+> **Log** : 🔇 Pas d'audio détecté -> Module VISION (BLIP).
+>
+> **Log** : 📸 Extraction de 5 images clés...
+>
+> **Résultat** : "🎥 **Analyse Visuelle** : Un homme assis à un bureau avec un ordinateur portable. Une voiture rouge passant dans la rue..."
+
+---
+*Projet réalisé dans le cadre d'un portfolio d'Ingénierie IA Multimodale.*
