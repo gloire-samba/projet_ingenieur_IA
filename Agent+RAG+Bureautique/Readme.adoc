@@ -1,0 +1,116 @@
+= Agent IA Polyvalent : RAG, Vision & Automatisation Bureautique
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+:sectnums:
+:sectlinks:
+:doctype: book
+
+== 📝 Description du Projet
+
+Ce projet implémente un **Agent IA Autonome Avancé** conçu pour l'audit, l'analyse documentaire et l'automatisation de tâches bureautiques.
+
+Contrairement à un simple chatbot, cet agent dispose de "mains" et d'"yeux" lui permettant d'interagir avec le monde réel :
+1.  **Analyser** des documents complexes (PDF, Word, PowerPoint, Images) via une architecture RAG (Retrieval-Augmented Generation).
+2.  **Voir** et transcrire des images ou des documents manuscrits (Vision IA + OCR Local).
+3.  **Agir** en créant et mettant en forme des fichiers Excel (.xlsx) et PDF.
+4.  **Naviguer** sur le web pour compléter ses informations.
+
+L'agent est conçu pour être **robuste** : il possède des mécanismes de secours (fallback) si une API ne répond pas (ex: bascule automatique de Google Vision vers Tesseract OCR).
+
+== 🛠️ Architecture Technique
+
+Le système repose sur une orchestration de plusieurs technologies de pointe :
+
+* **Cerveau (LLM)** : `Qwen 2.5-Coder-32B-Instruct` (via Hugging Face / LiteLLM) - Un modèle puissant pour le raisonnement et le code.
+* **Yeux (Vision)** : Système hybride double sécurité :
+    ** Principal : `Google Gemini 1.5 Flash` (Analyse sémantique d'images).
+    ** Secours : `Tesseract OCR` (Lecture optique locale si l'API Google échoue).
+* **Mémoire (RAG)** :
+    ** Vectorisation : `Sentence-Transformers` (Exécuté en local sur CPU pour la stabilité).
+    ** Stockage : `FAISS` (Recherche de similarité vectorielle).
+* **Mains (Outils)** :
+    ** `ecrire_excel_simple` : Injection de données brutes dans Excel.
+    ** `styler_excel_simple` : Application de styles (Couleurs, Gras) compatible LibreOffice.
+    ** `createur_pdf` : Génération de rapports PDF via ReportLab.
+    ** `DuckDuckGoSearchTool` : Recherche Web.
+
+== 🚀 Installation et Démarrage
+
+La procédure d'initialisation est stricte pour éviter les conflits de dépendances (notamment Numpy).
+
+=== Étape 1 : Installation des Dépendances
+Exécutez la **première cellule** du carnet (`Agent+RAG+Bureautique.ipynb`).
+Elle va :
+1.  Nettoyer l'environnement.
+2.  Installer les librairies système (LibreOffice, Tesseract).
+3.  Installer les librairies Python (`smolagents`, `langchain`, `openpyxl`, etc.).
+
+[IMPORTANT]
+====
+Une fois cette étape terminée, vous **DEVEZ** redémarrer la session.
+* Menu : **Exécution > Redémarrer la session** (ou `Ctrl + M` puis `.`).
+Si vous ne le faites pas, l'agent ne fonctionnera pas.
+====
+
+=== Étape 2 : Lancement du Cœur
+Une fois la session redémarrée :
+1.  Renseignez vos clés API dans la section `ZONE DES CLÉS` :
+    * `MA_CLE_HUGGINGFACE` (Pour le cerveau).
+    * `CLE_GOOGLE_VISION` (Pour les yeux).
+2.  Exécutez la **deuxième cellule** (celle qui contient tout le code de l'agent).
+    * Attendez le message : `🤖 AGENT PDF PRÊT.`
+
+== 🎮 Guide d'Utilisation : Créer une Mission
+
+Pour donner du travail à l'agent, utilisez le gabarit suivant dans une nouvelle cellule de code.
+
+=== 1. Préparation des fichiers (Optionnel)
+Si votre mission nécessite d'analyser un fichier (PDF, Image, Excel...), déclarez-le dans une liste. L'agent va le lire et le mettre dans sa mémoire (RAG).
+
+[source,python]
+----
+# Liste des fichiers à analyser (locaux)
+fichiers_mission = ['mon_rapport.pdf', 'photo_facture.png']
+initialiser_rag(fichiers_mission)
+----
+
+=== 2. Définition de la Mission
+Décrivez votre demande en langage naturel. Soyez précis sur le format de sortie souhaité.
+
+[source,python]
+----
+mission = """
+Agis comme un Expert Comptable.
+Analyse les documents fournis.
+1. Trouve le montant total des factures.
+2. Crée un fichier Excel 'Bilan.xlsx' avec le détail.
+3. Mets les en-têtes en ROUGE et GRAS.
+"""
+----
+
+=== 3. Exécution
+Copiez ce bloc standard pour lancer l'agent et gérer les erreurs potentielles.
+
+[source,python]
+----
+print(f"🎯 MISSION : {mission}")
+
+try:
+    # Lancement de l'agent
+    res = agent.run(mission)
+    print(f"\n💡 RÉSULTAT :\n{res}")
+except Exception as e:
+    print(f"🛑 Erreur : {e}")
+----
+
+== 📊 Capacités Actuelles
+
+L'agent est capable de réaliser les tâches suivantes :
+
+* **Extraction de données** : Lire des PDFs complexes ou des images (OCR) pour en sortir des chiffres clés.
+* **Génération Excel** : Créer des fichiers `.xlsx` multi-colonnes et appliquer des styles (Gras, Fonds colorés, Alignement).
+* **Rédaction de Rapports** : Synthétiser des informations et générer un fichier PDF propre avec titre et paragraphes.
+* **Recherche Web** : Vérifier une information sur Internet si elle n'est pas dans les documents.
+* **Conversion de formats** : Peut lire des fichiers `.odp` (OpenOffice) ou `.pptx` en les convertissant automatiquement.
